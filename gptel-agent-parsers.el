@@ -1,6 +1,6 @@
-;;; gptel-agent-parsers.el --- Parse markdown files with YAML frontmatter -*- lexical-binding: t -*-
+;;; gptel-agent-parsers.el --- Parse text files into gptel agents -*- lexical-binding: t -*-
 
-;; Copyright (C) 2024
+;; Copyright (C) 2025 Karthik Chikmagalur
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -14,10 +14,32 @@
 
 ;;; Commentary:
 
-;; Parsing utilities for markdown files with YAML frontmatter, specifically
-;; for gptel subagent definition files.
+;; Parsing utilities for gptel subagent definition files, from
+;; - Markdown files with YAML frontmatter
+;; - Org files with PROPERTIES blocks
 
 ;;; Code:
+
+(defvar gptel-agents-directories
+  (list (expand-file-name "./agents/"))
+  "Agent descriptions for gptel-agent.")
+
+(defvar gptel--agents nil)
+
+(defun gptel-agent--update ()
+  "Update `gptel--agents' with agent presets."
+  (mapc (lambda (dir)
+          (dolist (agent-file (cl-delete-if-not #'file-regular-p
+                                                (directory-files dir 'full)))
+            (let* ((agent-plist
+                    (pcase (file-name-extension agent-file)
+                      ("org" (gptel-agent-parse-org-properties agent-file))
+                      ("md" (gptel-agent-parse-markdown-frontmatter agent-file))))
+                   (name (plist-get agent-plist :name)))
+              (cl-remf agent-plist :name)
+              (setf (alist-get name gptel--agents nil t 'equal)
+                    agent-plist))))
+        gptel-agents-directories))
 
 (defvar gptel-agent-allowed-keys '(:name :description :tools :backend :model)
   "Default list of allowed keys in subagent frontmatter.")
@@ -30,7 +52,7 @@ KEY is a keyword symbol to validate.
 Returns t if KEY is in `gptel-agent-allowed-keys', nil otherwise."
   (memq key gptel-agent-allowed-keys))
 
-(defun gptel-agent-parse-frontmatter (file-path &optional validator)
+(defun gptel-agent-parse-markdown-frontmatter (file-path &optional validator)
   "Parse a markdown file with optional YAML frontmatter.
 
 FILE-PATH is the path to a markdown file.
