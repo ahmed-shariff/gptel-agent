@@ -184,10 +184,6 @@ properties persist through refontification."
 ;; - Can run commands in background with `run_in_background: true`
 ;; - Default timeout is 2 minutes (120000ms), max is 10 minutes
 
-(setf (alist-get "eval_elisp" gptel--tool-preview-alist
-                 nil t #'equal)
-      (list #'gptel-agent--eval-elisp-preview-setup))
-
 (defun gptel-agent--eval-elisp-preview-setup (arg-values _info)
   (let ((expr (car arg-values))
         (from (point)) (inner-from))
@@ -538,10 +534,6 @@ Errors with low severity are not collected."
 ;;; Filesystem tools
 ;;;; Make directories
 ;;;; Writing to files
-(setf (alist-get "edit_files" gptel--tool-preview-alist
-                 nil t #'equal)
-      (list #'gptel-agent--edit-files-preview-setup))
-
 (defun gptel-agent--edit-files-preview-setup (arg-values _info)
   "Insert tool call preview for ARG-VALUES for \"edit_files\" tool."
   (pcase-let ((from (point)) (files-affected) (description)
@@ -742,10 +734,6 @@ Patch STDOUT:\n%s"
         (let ((stdout-buf-obj (get-buffer out-buf-name))) ;Clean up
           (when (buffer-live-p stdout-buf-obj) (kill-buffer stdout-buf-obj)))))))
 
-(setf (alist-get "insert_in_file" gptel--tool-preview-alist
-                 nil nil #'equal)
-      (list #'gptel-agent--insert-in-file-preview-setup))
-
 (defun gptel-agent--insert-in-file-preview-setup (arg-values _info)
   "Preview setup for insert_in_file.
 INFO is the tool call info plist.
@@ -821,10 +809,6 @@ LINE-NUMBER conventions:
     (write-region nil nil path)
 
     (format "Successfully inserted text at line %d in %s" line-number path)))
-
-(setf (alist-get "write_file" gptel--tool-preview-alist
-                 nil nil #'equal)
-      (list #'gptel-agent--write-file-preview-setup))
 
 (defun gptel-agent--write-file-preview-setup (arg-values _info)
   (pcase-let ((from (point))
@@ -1041,10 +1025,6 @@ Exactly one item should have status \"in_progress\"."
           ,#'gptel--handle-tool-use))
   "See `gptel-request--handlers'.")
 
-(setf (alist-get "agent_task" gptel--tool-preview-alist
-                 nil nil #'equal)
-      (list #'gptel-agent--task-preview-setup))
-
 (defun gptel-agent--task-preview-setup (arg-values _info)
   "Preview setup for agent_task.
 INFO is the tool call info plist.
@@ -1186,6 +1166,17 @@ Error details: %S"
 %s could not finish."
                                 description agent-type))))))))))
 
+;;; Register tool call preview functions
+
+(pcase-dolist (`(,tool-name . ,setup-fn)
+               `(("write_file"     ,#'gptel-agent--write-file-preview-setup)
+                 ("eval_elisp"     ,#'gptel-agent--eval-elisp-preview-setup)
+                 ("edit_files"     ,#'gptel-agent--edit-files-preview-setup)
+                 ("insert_in_file" ,#'gptel-agent--insert-in-file-preview-setup)
+                 ("agent_task"     ,#'gptel-agent--task-preview-setup)))
+  (setf (alist-get tool-name gptel--tool-preview-alist
+                   nil nil #'equal)
+        setup-fn))
 
 ;;; All tool declarations
 
