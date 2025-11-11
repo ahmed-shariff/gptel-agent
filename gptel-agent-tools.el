@@ -1115,21 +1115,19 @@ ARG-VALUES is a list: (type description prompt)"
          (ov (make-overlay (car bounds) (cdr bounds) nil t))
          (msg (concat
                (unless (eq (char-after (car bounds)) 10) "\n")
-               gptel-agent--hrule
+               "\n" gptel-agent--hrule
                (propertize (concat (capitalize agent-type) " Task: ")
                            'face 'font-lock-escape-face)
                (propertize description 'face 'font-lock-doc-face) "\n")))
     (prog1 ov
-      (overlay-put ov 'evaporate t)
       (overlay-put ov 'gptel-agent t)
       (overlay-put ov 'count 0)
       (overlay-put ov 'msg msg)
       (overlay-put ov 'line-prefix "")
       (overlay-put
        ov 'after-string
-       (concat
-        msg (propertize "Waiting..." 'face 'warning) "\n"
-        gptel-agent--hrule)))))
+       (concat msg (propertize "Waiting..." 'face 'warning) "\n"
+               gptel-agent--hrule)))))
 
 (defun gptel-agent--task (main-cb agent-type description prompt)
   "Call a gptel agent to do specific compound tasks.
